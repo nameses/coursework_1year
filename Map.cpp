@@ -1,0 +1,128 @@
+#include <chrono>
+#include <string>
+#include <time.h>
+#include "Map.h" // заголовковий файл
+Map::Map(int setSize)//конструктор
+{
+	size = setSize;
+	//виділення пам'яті
+	map = new int* [size];
+	for (int i = 0; i < size; i++)
+		map[i] = new int[size];
+}
+Map::~Map()
+{
+	//видалення виділеної пам'яті
+	for (int i = 0; i < size; i++)
+		delete[] map[i];
+}
+bool Map::setMapFromFile()
+{
+	ifstream in;
+	in.open("map.txt");//відкриття файлу
+	if (!in)//перевірка чи був файл відкритий
+		return false;
+	for (int i = 0; i < size; i++)
+		for (int j = 0; j < size && !in.eof(); j++)
+			in >> map[i][j]; // заповнення масиву
+	in.close();//закриття файлу
+	return true;
+}
+void Map::setMapFromInput()
+{
+	//початок введення данних
+	cout << "Уведіть двозначні числа-номери:\n";
+	for(int i = 0; i < size; i++)
+	{
+		for (int j = 0; j < size; j++)
+		{
+			int temp;
+			cout << '[' << i << "][" << j << "]=";
+			cin >> temp;
+			//перевірка чи підходить число
+			if (temp % 10 >= 1 && temp % 10 <= size && temp / 10 >= 1 && temp / 10 <= size && temp<100 && temp>10)
+				map[i][j]=temp;
+			//якщо число не підходить - повторюємо ітерацію
+			else
+			{
+				cin.clear();
+				cin.ignore(10000, '\n');
+				j--;
+				cout << "Невідповідне число\n";
+			}
+		}
+		cout << endl;
+	}
+	system("clear");
+	return;
+}
+void Map::setRandMap()
+{
+	srand(time(NULL));
+	for (int i = 0; i < size; i++)
+	{
+		for (int j = 0; j < size; j++)
+		{
+			//заповнення рандомними числами
+			//rand()%(11*(size-1)+1) + 11   - число в діапазоні 11-55 ( якщо size=5)
+			map[i][j] = rand()%(11*(size-1)+1) + 11;
+			if (!(map[i][j] % 10 >= 1 && map[i][j] % 10 <= size && map[i][j] / 10 >= 1 && map[i][j] / 10 <= size)) j--;
+		}
+	}
+}
+void Map::findTreasure()
+{
+	auto start = std::chrono::steady_clock::now();//початок таймеру
+	int x = 0, y = 0, num = 0, steps = 0;
+	string buffer = "11";//майбутній вивід шляху, початок 11
+	do
+	{
+		num = map[x][y];
+		if( num % 10 - 1==y && num / 10 - 1==x)
+		{//якщо число вказує само на себе -> скарб
+			buffer += "->";
+			buffer += to_string(x + 1);
+			buffer += to_string(y + 1);
+			steps++;
+			break;
+		}
+		y = num % 10 - 1;//остання цифра числа
+		x = num / 10 - 1;//перша цифра числа
+		//запис в стрінг
+		buffer+="->";
+		buffer += to_string(x + 1);
+		buffer += to_string(y + 1);
+
+		steps++;
+	} while (steps <= size * size);
+	buffer += ".\n";
+	if (steps > size*size)
+	{//зациклення -> не можна знайти скарб
+		cout << "Cкарб не існує!\n";
+	}
+	else
+	{//скарб знайдений, вивід шляху
+		cout << buffer << "Скарб був знайдений в клітинці " << x + 1 << y + 1 << endl;
+		cout << "Кількість кроків: " << steps;
+	}
+	//кінець таймера і вивід затраченого часу
+	chrono::duration<double> diff = chrono::steady_clock::now() - start;
+	cout << "\nЗатрачений час на пошук: " << diff.count() << endl;
+
+}
+ostream& operator<<(ostream& out, Map& m)
+{
+	for (int i = 0; i < m.size; i++)
+	{
+		for (int i = 0; i < 5 * m.size + 1; i++) out << '-'; // верхня межа
+		out << endl << "| "; // права границя крайнього правого елемента таблиці
+		for (int j = 0; j < m.size; j++)
+		{
+			out << m.map[i][j] << " | "; // границі між елементами
+		}
+		out << endl;
+	}
+	for (int i = 0; i < 5 * m.size + 1; i++) out << '-'; // нижня межа
+	out << endl;
+	return out;
+}
